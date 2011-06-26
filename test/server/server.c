@@ -13,7 +13,7 @@ void error(char *msg)
 
 int main(int argc, char *argv[])
 {
-     int sockfd, newsockfd, portno, clilen;
+     int sockfd=0, newsockfd=0, portno=0, clilen=0;
      char buffer[256];
      struct sockaddr_in6 serv_addr, cli_addr;
      int n;
@@ -21,17 +21,28 @@ int main(int argc, char *argv[])
          fprintf(stderr,"ERROR, no port provided\n");
          exit(1);
      }
+     
+     printf("socket( AF_INET6_EXT: %d, SOCK_STREAM: %d, 0)\n", AF_INET6_EXT, SOCK_STREAM);
+
      sockfd = socket(AF_INET6_EXT, SOCK_STREAM, 0);
+     printf("sockfd: %d\n", sockfd);
+
      if (sockfd < 0) 
         error("ERROR opening socket");
+
      bzero((char *) &serv_addr, sizeof(serv_addr));
      portno = atoi(argv[1]);
+
      serv_addr.sin6_family = AF_INET6;
      serv_addr.sin6_addr = in6addr_any;
      serv_addr.sin6_port = htons(portno);
+
+     printf(" bind()\n");
      if (bind(sockfd, (struct sockaddr *) &serv_addr,
               sizeof(serv_addr)) < 0) 
               error("ERROR on binding");
+     printf(" listen() ");
+
      listen(sockfd,5);
      clilen = sizeof(cli_addr);
      newsockfd = accept(sockfd, 
