@@ -1,0 +1,11 @@
+--- /usr/src/linux-3.0-rc4/Makefile	2011-06-21 03:25:46.000000000 +0000
++++ /usr/src/linux-3.0-rc4-ipv6_ext/Makefile	2011-06-26 15:33:33.000000000 +0000
+@@ -1,7 +1,7 @@
+ VERSION = 3
+ PATCHLEVEL = 0
+ SUBLEVEL = 0
+-EXTRAVERSION = -rc4
++EXTRAVERSION = -rc4-ipv6_ext
+ NAME = Sneaky Weasel
+ 
+ # *DOCUMENTATION*
