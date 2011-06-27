@@ -46,12 +46,13 @@ MODULE_AUTHOR("Javier Ubillos");
 MODULE_DESCRIPTION("Extension to IPv6 protocol stack to easily add extensionheaders");
 MODULE_LICENSE("GPL");
 
-static int inet6_ext_create_socket(struct net *net, struct socket *sock, int protocol, int kern);
-
+static int inet6_ext_create(struct net *net, struct socket *sock, int protocol, int kern);
+int inet6_ext_bind( struct socket *sock, struct sockaddr *myaddr, int sockaddr_len);
 
 /* Protocol specific socket structure */
 struct inet6_ext_sock {
-	struct inet_sock isk;
+	struct sock sk;
+	struct socket *ipv6_sock;
 	/* Add the Protocol implementation specific data members per socket here from here on */
 };
 
@@ -80,64 +81,107 @@ struct proto inet6_ext_proto = {
 	.max_header = 0, */
 	.obj_size = sizeof(struct inet6_ext_sock),
 	.owner = THIS_MODULE,
-	.name = "NEW_TCP",
+	.name = "IPV6_EXT",
 };
 
 static struct proto_ops inet6_ext_proto_ops = {
-	.family = PF_INET6,
-	.owner = THIS_MODULE,
-	.release = inet_release,
-/*	.bind = inet6_ext_bind,
-	.connect = inet_stream_connect,
-	.socketpair = sock_no_socketpair,
-	.accept = inet_accept,
-	.getname = inet_getname,
-	.poll = inet6_ext_poll,
-	.ioctl = inet_ioctl,
-	.listen = inet6_ext_inet_listen,
-	.shutdown = inet_shutdown,
-	.setsockopt = sock_common_setsockopt,
-	.getsockopt = sock_common_getsockopt,
-	.sendmsg = inet_sendmsg,
-	.recvmsg = sock_common_recvmsg,
-*/
+        .family            = PF_INET6,
+        .owner             = THIS_MODULE,
+        .release           = inet6_release,
+        .bind              = inet6_bind,
+        .connect           = inet_stream_connect,       /* ok           */
+        .socketpair        = sock_no_socketpair,        /* a do nothing */
+        .accept            = inet_accept,               /* ok           */
+        .getname           = inet6_getname,
+        .poll              = tcp_poll,                  /* ok           */
+        .ioctl             = inet6_ioctl,               /* must change  */
+        .listen            = inet_listen,               /* ok           */
+        .shutdown          = inet_shutdown,             /* ok           */
+        .setsockopt        = sock_common_setsockopt,    /* ok           */
+        .getsockopt        = sock_common_getsockopt,    /* ok           */
+        .sendmsg           = inet_sendmsg,              /* ok           */
+        .recvmsg           = inet_recvmsg,              /* ok           */
+        .mmap              = sock_no_mmap,
+        .sendpage          = inet_sendpage,
+        .splice_read       = tcp_splice_read,
+
 };
 
 struct net_proto_family inet6_ext_net_proto = {
 	.family = AF_INET6_EXT,
-	.create = inet6_ext_create_socket,
+	.create = inet6_ext_create,
 	.owner= THIS_MODULE,
 };
 
+int inet6_ext_bind( struct socket *sock, struct sockaddr *myaddr, int sockaddr_len){
+//	sock->
+	return -1;
+}
 
+static struct sock *ipv6_ext_alloc_stream_socket(struct net *net, struct socket *sock)
+{
+	printk("%s:%d - %s (net: %p, sock: %p)\n", __FILE__, __LINE__, __FUNCTION__, net, sock);
+	int i = 0;
+	struct sock *sk = sk_alloc(net, PF_INET6_EXT, GFP_ATOMIC, &inet6_ext_proto);
 
-static int inet6_ext_create_socket(struct net *net, struct socket *sock,  int protocol, int kern)
+	printk("%s:%d - %s (): sk_alloc(): sk: %p\n", __FILE__, __LINE__, __FUNCTION__, sk);
+
+	struct inet6_ext_sock *sk_inet6_ext;
+
+	if (!sk) {
+		printk("%s:%d - %s (): sk is null -> goto out; \n", __FILE__, __LINE__, __FUNCTION__);
+		goto out;
+	}
+
+	 
+	sock_init_data(sock, sk); // Init sk struct and set sk->sk_socket = sock
+	sock->ops = &inet6_ext_proto_ops;
+	sock->state = SS_UNCONNECTED;
+
+	sk_inet6_ext = (struct inet6_ext_sock *)sk;
+    
+	//	sock_create_kern(PF_INET6, SOCK_STREAM, IPPROTO_IP, &sk_inet6_ext->ipv6_sock);
+	printk("%s:%d - %s (): sock->inet6_sock: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext->ipv6_sock);
+
+out:
+	return sk;
+}
+
+static int inet6_ext_create(struct net *net, struct socket *sock,  int protocol, int kern)
 {
 	printk("%s:%d - %s (net: %p, sock: %p, protocol: %d, kern: %d)\n", __FILE__, __LINE__, __FUNCTION__, net, sock, protocol, kern);
-	struct sock *sk;
+	struct sock *sk = 0;
 	int rc;
 
-	if( protocol && protocol != PF_INET6_EXT ) {
+	if( protocol && protocol != IPPROTO_TCP ) {
 		printk("%s:%d - %s () : No support for protocol: %d, (expected %d)\n", __FILE__, __LINE__, __FUNCTION__, protocol, AF_INET6_EXT);
 		return -EPROTONOSUPPORT;
 	}
 
-	printk("%s:%d - %s () : sk = sk_alloc(net: %p, PF_INET6_EXT: %d, GFP_KERNEL: %d, &inet6_ext_proto: %p);\n",__FILE__, __LINE__, __FUNCTION__,  net, PF_INET6_EXT, GFP_KERNEL, inet6_ext_proto);
-	sk = sk_alloc(net, PF_INET6_EXT, GFP_KERNEL, &inet6_ext_proto);
-	printk("%s:%d - %s () : sk: %p = sk_alloc(net, PF_INET6_EXT, GFP_KERNEL, &inet6_ext_proto );\n",__FILE__, __LINE__, __FUNCTION__,  sk);
+	printk("%s:%d - %s () : sock->type %d\n", __FILE__, __LINE__, __FUNCTION__, sock->type);
+	switch (sock->type) {
+	case SOCK_STREAM:
+		rc = -ENOMEM;
+		if ( sk = ipv6_ext_alloc_stream_socket(net, sock) )
+			rc = 0;
+		break;
+	case SOCK_DGRAM:
+		rc = -EPROTONOSUPPORT;
+		//rc = -ENOMEM;
+		/* Not yet supported
+		   if ((sk = name_alloc_dgram_socket(net, sock)))
+		   rc = 0; */
+		break;
+	default:
+		rc = -EPROTONOSUPPORT;
+	}
+
 	if (!sk) {
 		printk("failed to allocate socket.\n");
 		return -ENOMEM;
 	}
 	
-	sock_init_data(sock, sk);
-	sk->sk_protocol = 0x0;
-	
-	sock->ops = &inet6_ext_proto_ops;
-	sock->state = SS_UNCONNECTED;
-	
-        /* Do the protocol specific socket object initialization */
-	return 0;
+	return rc;
 };
 
 static int af_inet6_ext_init(void)
