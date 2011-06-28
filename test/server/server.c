@@ -17,6 +17,7 @@ int main(int argc, char *argv[])
      char buffer[256];
      struct sockaddr_in6 serv_addr, cli_addr;
      int n;
+     int err;
      if (argc < 2) {
 	     fprintf(stderr,"ERROR, no port provided\n");
 	     exit(1);
@@ -37,10 +38,12 @@ int main(int argc, char *argv[])
      serv_addr.sin6_addr = in6addr_any;
      serv_addr.sin6_port = htons(portno);
      
-     printf(" bind()\n");fflush(stdout);
-     if (bind(sockfd, (struct sockaddr *) &serv_addr,
-              sizeof(serv_addr)) < 0) 
-	     error("ERROR on binding");
+     printf("bind()\n");fflush(stdout);
+     if (err = bind(sockfd, (struct sockaddr *) &serv_addr,
+		    sizeof(serv_addr)) < 0) {
+	     printf("%d from bind()\n", err);
+	     error("ERROR: on binding");
+     }
      printf(" listen() ");fflush(stdout);
      
      listen(sockfd,5);
