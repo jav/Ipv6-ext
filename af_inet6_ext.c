@@ -46,6 +46,7 @@ MODULE_AUTHOR("Javier Ubillos");
 MODULE_DESCRIPTION("Extension to IPv6 protocol stack to easily add extensionheaders");
 MODULE_LICENSE("GPL");
 
+int inet6_ext_listen(struct socket *sock, int len);
 int inet6_ext_release(struct socket *sock);
 static int inet6_ext_create(struct net *net, struct socket *sock, int protocol, int kern);
 int inet6_ext_bind( struct socket *sock, struct sockaddr *myaddr, int sockaddr_len);
@@ -96,7 +97,7 @@ static struct proto_ops inet6_ext_proto_ops = {
         .getname           = inet6_getname,
         .poll              = tcp_poll,                  /* ok           */
         .ioctl             = inet6_ioctl,               /* must change  */
-        .listen            = inet_listen,               /* ok           */
+        .listen            = inet6_ext_listen,          /* ok           */
         .shutdown          = inet_shutdown,             /* ok           */
         .setsockopt        = sock_common_setsockopt,    /* ok           */
         .getsockopt        = sock_common_getsockopt,    /* ok           */
@@ -114,49 +115,65 @@ struct net_proto_family inet6_ext_net_proto = {
 	.owner= THIS_MODULE,
 };
 
-int inet6_ext_release(struct socket *sock){
+int inet6_ext_listen(struct socket *sock, int len)
+{
 	printk("%s:%d - %s (sock: %p)\n", __FILE__, __LINE__, __FUNCTION__, sock);
-		struct inet6_ext_sock *sk_inet6_ext = (struct inet6_ext_sock *) sock;
+	struct inet6_ext_sock *sk_inet6_ext = (struct inet6_ext_sock *) sock->sk;
+	return kernel_listen(sock, len);
+}
+
+
+int inet6_ext_release(struct socket *sock)
+{
+	printk("%s:%d - %s (sock: %p)\n", __FILE__, __LINE__, __FUNCTION__, sock);
+	struct inet6_ext_sock *sk_inet6_ext = (struct inet6_ext_sock *) sock->sk;
 	if( NULL == sk_inet6_ext){
 	  	printk("%s:%d - %s () sk_inet_ext is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext);
 		return -1;
 	}
 	if( NULL == sk_inet6_ext->ipv6_sock){
-	  	printk("%s:%d - %s () sk_inet_ext->ipv6_sock is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext->ipv6_sock);
+		printk("%s:%d - %s () sk_inet_ext(%p)->ipv6_sock is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext, sk_inet6_ext->ipv6_sock);
 		return -2;
 	}
 	if( NULL == sk_inet6_ext->ipv6_sock->ops){
-	  	printk("%s:%d - %s () sk_inet_ext->ipv6_sock->ops is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext->ipv6_sock->ops);
+	  	printk("%s:%d - %s () sk_inet_ext(%p)->ipv6_sock(%p)->ops is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext, sk_inet6_ext->ipv6_sock, sk_inet6_ext->ipv6_sock->ops);
 		return -3;
 	}
 	if( NULL == sk_inet6_ext->ipv6_sock->ops->bind){
-	  	printk("%s:%d - %s () sk_inet_ext->ipv6_sock->ops->bind is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext->ipv6_sock->ops->bind);
+	  	printk("%s:%d - %s () sk_inet_ext(%p)->ipv6_sock(%p)->ops->bind is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext, sk_inet6_ext->ipv6_sock, sk_inet6_ext->ipv6_sock->ops, sk_inet6_ext->ipv6_sock->ops->bind);
 		return -4;
 	}
+	printk("%s:%d - %s () EXIT sk_inet_ext(%p)->ipv6_sock(%p)->ops->bind is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext, sk_inet6_ext->ipv6_sock, sk_inet6_ext->ipv6_sock->ops, sk_inet6_ext->ipv6_sock->ops->bind);
+	printk("%s:%d - %s (): sock: %p, sock->sk: %p, sk_inet6_ext(%p)->inet6_sock: %p, sock->sk->family: %d)\n", __FILE__, __LINE__, __FUNCTION__, sock, sock->sk, sk_inet6_ext, sk_inet6_ext->ipv6_sock, sock->sk->sk_family);
+	return -5;
 	return sk_inet6_ext->ipv6_sock->ops->release( sock );
 }
 
 int inet6_ext_bind( struct socket *sock, struct sockaddr *myaddr, int sockaddr_len) 
 {
 	printk("%s:%d - %s (sock: %p, myaddr: %p, sockaddr_len: %d)\n", __FILE__, __LINE__, __FUNCTION__, sock, myaddr, sockaddr_len);
-	struct inet6_ext_sock *sk_inet6_ext = (struct inet6_ext_sock *) sock;
+	struct inet6_ext_sock *sk_inet6_ext = (struct inet6_ext_sock *) sock->sk;
 	if( NULL == sk_inet6_ext){
 	  	printk("%s:%d - %s () sk_inet_ext is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext);
 		return -1;
 	}
 	if( NULL == sk_inet6_ext->ipv6_sock){
-	  	printk("%s:%d - %s () sk_inet_ext->ipv6_sock is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext->ipv6_sock);
+		printk("%s:%d - %s () sk_inet_ext(%p)->ipv6_sock is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext, sk_inet6_ext->ipv6_sock);
 		return -2;
 	}
 	if( NULL == sk_inet6_ext->ipv6_sock->ops){
-	  	printk("%s:%d - %s () sk_inet_ext->ipv6_sock->ops is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext->ipv6_sock->ops);
+	  	printk("%s:%d - %s () sk_inet_ext(%p)->ipv6_sock(%p)->ops is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext, sk_inet6_ext->ipv6_sock, sk_inet6_ext->ipv6_sock->ops);
 		return -3;
 	}
 	if( NULL == sk_inet6_ext->ipv6_sock->ops->bind){
-	  	printk("%s:%d - %s () sk_inet_ext->ipv6_sock->ops->bind is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext->ipv6_sock->ops->bind);
+	  	printk("%s:%d - %s () sk_inet_ext(%p)->ipv6_sock(%p)->ops->bind is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext, sk_inet6_ext->ipv6_sock, sk_inet6_ext->ipv6_sock->ops, sk_inet6_ext->ipv6_sock->ops->bind);
 		return -4;
 	}
-	return sk_inet6_ext->ipv6_sock->ops->bind( sock, myaddr, sockaddr_len );
+	printk("%s:%d - %s () EXIT sk_inet_ext(%p)->ipv6_sock(%p)->ops->bind is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext, sk_inet6_ext->ipv6_sock, sk_inet6_ext->ipv6_sock->ops, sk_inet6_ext->ipv6_sock->ops->bind);
+	printk("%s:%d - %s (): sock: %p, sock->sk: %p, sk_inet6_ext(%p)->inet6_sock: %p, sock->sk->family: %d sk_inet6_ext->inet6_sock->family: %d\n", __FILE__, __LINE__, __FUNCTION__, sock, sock->sk, sk_inet6_ext, sk_inet6_ext->ipv6_sock, sock->sk->sk_family, sk_inet6_ext->ipv6_sock->sk->sk_family);
+
+	kernel_bind(sk_inet6_ext->ipv6_sock, myaddr, sockaddr_len);
+	//return sk_inet6_ext->ipv6_sock->ops->bind( sock, myaddr, sockaddr_len );
 }
 
 static struct sock *ipv6_ext_alloc_stream_socket(struct net *net, struct socket *sock)
@@ -164,25 +181,29 @@ static struct sock *ipv6_ext_alloc_stream_socket(struct net *net, struct socket 
 	printk("%s:%d - %s (net: %p, sock: %p)\n", __FILE__, __LINE__, __FUNCTION__, net, sock);
 	int i = 0;
 	struct sock *sk = sk_alloc(net, PF_INET6_EXT, GFP_ATOMIC, &inet6_ext_proto);
-
-	printk("%s:%d - %s (): sk_alloc(): sk: %p\n", __FILE__, __LINE__, __FUNCTION__, sk);
-
-	struct inet6_ext_sock *sk_inet6_ext;
+	
+	printk("%s:%d - %s (): sk_alloc(): sk: %p sk->sk_family = %d\n", __FILE__, __LINE__, __FUNCTION__, sk, sk->sk_family);
 
 	if (!sk) {
 		printk("%s:%d - %s (): sk is null -> goto out; \n", __FILE__, __LINE__, __FUNCTION__);
 		goto out;
 	}
-
 	 
 	sock_init_data(sock, sk); // Init sk struct and set sk->sk_socket = sock
 	sock->ops = &inet6_ext_proto_ops;
 	sock->state = SS_UNCONNECTED;
 
-	sk_inet6_ext = (struct inet6_ext_sock *)sk;
+	struct inet6_ext_sock *sk_inet6_ext = sock->sk;
     
-	sock_create_kern(PF_INET6, SOCK_STREAM, IPPROTO_IP, &sk_inet6_ext->ipv6_sock);
-	printk("%s:%d - %s (): sock->inet6_sock: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext->ipv6_sock);
+	if ( !sock_create_kern(PF_INET6, SOCK_STREAM, IPPROTO_IP, &sk_inet6_ext->ipv6_sock ) ) {
+		int on = 1;
+		/*if( !kernel_setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY,
+				       (char *)&on, sizeof(on)) ) {
+			printk("%s:%d - %s (): failed at kernel_setsockopt() (should print return, err)\n", __FILE__, __LINE__, __FUNCTION__);
+			}*/
+	}
+
+	printk("%s:%d - %s (): sock: %p, sock->sk: %p, sk_inet6_ext(%p)->inet6_sock: %p, sock->sk->family: %d)\n", __FILE__, __LINE__, __FUNCTION__, sock, sock->sk, sk_inet6_ext, sk_inet6_ext->ipv6_sock, sock->sk->sk_family);
 
 out:
 	return sk;
@@ -199,7 +220,7 @@ static int inet6_ext_create(struct net *net, struct socket *sock,  int protocol,
 		return -EPROTONOSUPPORT;
 	}
 
-	printk("%s:%d - %s () : sock->type %d\n", __FILE__, __LINE__, __FUNCTION__, sock->type);
+	printk("%s:%d - %s () : sock->type %d - SOCK_STREAM=1\n", __FILE__, __LINE__, __FUNCTION__, sock->type);
 	switch (sock->type) {
 	case SOCK_STREAM:
 		rc = -ENOMEM;
