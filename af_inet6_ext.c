@@ -119,7 +119,7 @@ int inet6_ext_listen(struct socket *sock, int len)
 {
 	printk("%s:%d - %s (sock: %p)\n", __FILE__, __LINE__, __FUNCTION__, sock);
 	struct inet6_ext_sock *sk_inet6_ext = (struct inet6_ext_sock *) sock->sk;
-	return kernel_listen(sock, len);
+	return kernel_listen(sk_inet6_ext->ipv6_sock, len);
 }
 
 
@@ -127,53 +127,14 @@ int inet6_ext_release(struct socket *sock)
 {
 	printk("%s:%d - %s (sock: %p)\n", __FILE__, __LINE__, __FUNCTION__, sock);
 	struct inet6_ext_sock *sk_inet6_ext = (struct inet6_ext_sock *) sock->sk;
-	if( NULL == sk_inet6_ext){
-	  	printk("%s:%d - %s () sk_inet_ext is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext);
-		return -1;
-	}
-	if( NULL == sk_inet6_ext->ipv6_sock){
-		printk("%s:%d - %s () sk_inet_ext(%p)->ipv6_sock is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext, sk_inet6_ext->ipv6_sock);
-		return -2;
-	}
-	if( NULL == sk_inet6_ext->ipv6_sock->ops){
-	  	printk("%s:%d - %s () sk_inet_ext(%p)->ipv6_sock(%p)->ops is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext, sk_inet6_ext->ipv6_sock, sk_inet6_ext->ipv6_sock->ops);
-		return -3;
-	}
-	if( NULL == sk_inet6_ext->ipv6_sock->ops->bind){
-	  	printk("%s:%d - %s () sk_inet_ext(%p)->ipv6_sock(%p)->ops->bind is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext, sk_inet6_ext->ipv6_sock, sk_inet6_ext->ipv6_sock->ops, sk_inet6_ext->ipv6_sock->ops->bind);
-		return -4;
-	}
-	printk("%s:%d - %s () EXIT sk_inet_ext(%p)->ipv6_sock(%p)->ops->bind is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext, sk_inet6_ext->ipv6_sock, sk_inet6_ext->ipv6_sock->ops, sk_inet6_ext->ipv6_sock->ops->bind);
-	printk("%s:%d - %s (): sock: %p, sock->sk: %p, sk_inet6_ext(%p)->inet6_sock: %p, sock->sk->family: %d)\n", __FILE__, __LINE__, __FUNCTION__, sock, sock->sk, sk_inet6_ext, sk_inet6_ext->ipv6_sock, sock->sk->sk_family);
-	return -5;
-	return sk_inet6_ext->ipv6_sock->ops->release( sock );
+	return sk_inet6_ext->ipv6_sock->ops->release( sock ); // Broken, haven't figured this one out yet.
 }
 
 int inet6_ext_bind( struct socket *sock, struct sockaddr *myaddr, int sockaddr_len) 
 {
 	printk("%s:%d - %s (sock: %p, myaddr: %p, sockaddr_len: %d)\n", __FILE__, __LINE__, __FUNCTION__, sock, myaddr, sockaddr_len);
 	struct inet6_ext_sock *sk_inet6_ext = (struct inet6_ext_sock *) sock->sk;
-	if( NULL == sk_inet6_ext){
-	  	printk("%s:%d - %s () sk_inet_ext is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext);
-		return -1;
-	}
-	if( NULL == sk_inet6_ext->ipv6_sock){
-		printk("%s:%d - %s () sk_inet_ext(%p)->ipv6_sock is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext, sk_inet6_ext->ipv6_sock);
-		return -2;
-	}
-	if( NULL == sk_inet6_ext->ipv6_sock->ops){
-	  	printk("%s:%d - %s () sk_inet_ext(%p)->ipv6_sock(%p)->ops is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext, sk_inet6_ext->ipv6_sock, sk_inet6_ext->ipv6_sock->ops);
-		return -3;
-	}
-	if( NULL == sk_inet6_ext->ipv6_sock->ops->bind){
-	  	printk("%s:%d - %s () sk_inet_ext(%p)->ipv6_sock(%p)->ops->bind is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext, sk_inet6_ext->ipv6_sock, sk_inet6_ext->ipv6_sock->ops, sk_inet6_ext->ipv6_sock->ops->bind);
-		return -4;
-	}
-	printk("%s:%d - %s () EXIT sk_inet_ext(%p)->ipv6_sock(%p)->ops->bind is: %p)\n", __FILE__, __LINE__, __FUNCTION__, sk_inet6_ext, sk_inet6_ext->ipv6_sock, sk_inet6_ext->ipv6_sock->ops, sk_inet6_ext->ipv6_sock->ops->bind);
-	printk("%s:%d - %s (): sock: %p, sock->sk: %p, sk_inet6_ext(%p)->inet6_sock: %p, sock->sk->family: %d sk_inet6_ext->inet6_sock->family: %d\n", __FILE__, __LINE__, __FUNCTION__, sock, sock->sk, sk_inet6_ext, sk_inet6_ext->ipv6_sock, sock->sk->sk_family, sk_inet6_ext->ipv6_sock->sk->sk_family);
-
-	kernel_bind(sk_inet6_ext->ipv6_sock, myaddr, sockaddr_len);
-	//return sk_inet6_ext->ipv6_sock->ops->bind( sock, myaddr, sockaddr_len );
+	return kernel_bind(sk_inet6_ext->ipv6_sock, myaddr, sockaddr_len);
 }
 
 static struct sock *ipv6_ext_alloc_stream_socket(struct net *net, struct socket *sock)
