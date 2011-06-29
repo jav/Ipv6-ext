@@ -1,5 +1,6 @@
 /* A simple server in the internet domain using TCP
    The port number is passed as an argument */
+#include <unistd.h>
 #include <stdio.h>
 #include <sys/types.h> 
 #include <sys/socket.h>
@@ -39,15 +40,21 @@ int main(int argc, char *argv[])
      serv_addr.sin6_port = htons(portno);
      
      printf("bind()\n");fflush(stdout);
+
+     printf("sleep\n");   sleep(2);
+
      if (err = bind(sockfd, (struct sockaddr *) &serv_addr,
 		    sizeof(serv_addr)) < 0) {
 	     printf("%d from bind()\n", err);
 	     error("ERROR: on binding");
      }
      printf(" listen() ");fflush(stdout);
-     
+     printf("sleep\n");   sleep(2);     
      listen(sockfd,5);
      clilen = sizeof(cli_addr);
+
+     printf("accept() ");fflush(stdout);
+     printf("sleep\n");   sleep(2);
      newsockfd = accept(sockfd, 
 			(struct sockaddr *) &cli_addr, 
 			&clilen);
