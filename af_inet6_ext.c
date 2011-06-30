@@ -46,6 +46,7 @@ MODULE_AUTHOR("Javier Ubillos");
 MODULE_DESCRIPTION("Extension to IPv6 protocol stack to easily add extensionheaders");
 MODULE_LICENSE("GPL");
 
+int inet6_ext_accept( struct socket *sock, struct socket *newsock, int flags);
 int inet6_ext_listen(struct socket *sock, int len);
 int inet6_ext_release(struct socket *sock);
 static int inet6_ext_create(struct net *net, struct socket *sock, int protocol, int kern);
@@ -61,7 +62,7 @@ struct inet6_ext_sock {
 struct proto inet6_ext_proto = {
 /*	.close = inet6_ext_close,
 	.connect = inet6_ext_connect,
-	.disconnect = inet6_ext_disconnect,
+	.disconnect = inet6_ext_disconnect, 
 	.accept = inet6_ext_accept,
 	.ioctl = inet6_ext_ioctl,
 	.init = inet6_ext_init_sock,
@@ -93,7 +94,7 @@ static struct proto_ops inet6_ext_proto_ops = {
         .bind              = inet6_ext_bind,
         .connect           = inet_stream_connect,       /* ok           */
         .socketpair        = sock_no_socketpair,        /* a do nothing */
-        .accept            = inet_accept,               /* ok           */
+        .accept            = inet6_ext_accept,               /* ok           */
         .getname           = inet6_getname,
         .poll              = tcp_poll,                  /* ok           */
         .ioctl             = inet6_ioctl,               /* must change  */
@@ -115,6 +116,30 @@ struct net_proto_family inet6_ext_net_proto = {
 	.owner= THIS_MODULE,
 };
 
+int dbg_call(){
+	return 0;
+}
+
+int inet6_ext_accept( struct socket *sock, struct socket *newsock, int flags)
+{
+	int ret;
+	int err;
+	int foo;
+	printk("%s:%d - %s (sock: %p, newsock: %p, flags: %x)\n", __FILE__, __LINE__, __FUNCTION__, sock, newsock, flags);
+	struct inet6_ext_sock *sk_inet6_ext = (struct inet6_ext_sock *) sock->sk;
+
+	if(!sk_inet6_ext->ipv6_sock->sk->sk_prot->accept) {
+		printk("%s:%d - %s (): sk_inet6_ext->ipv6_sock->sk->sk_prot->accept is NULL\n", __FILE__, __LINE__, __FUNCTION__ );
+	}
+
+	err = 0;
+	//newsock = sk_inet6_ext->ipv6_sock->sk->sk_prot->accept(sk_inet6_ext->ipv6_sock, flags, &err);
+	printk("%s:%d - %s () : err: %d\n", __FILE__, __LINE__, __FUNCTION__, err);
+	
+	foo = dbg_call();
+	return kernel_accept(sk_inet6_ext->ipv6_sock, newsock, flags);
+}
+
 int inet6_ext_listen(struct socket *sock, int len)
 {
 	printk("%s:%d - %s (sock: %p)\n", __FILE__, __LINE__, __FUNCTION__, sock);
@@ -126,7 +151,9 @@ int inet6_ext_listen(struct socket *sock, int len)
 int inet6_ext_release(struct socket *sock)
 {
 	printk("%s:%d - %s (sock: %p)\n", __FILE__, __LINE__, __FUNCTION__, sock);
+	return -1;
 	struct inet6_ext_sock *sk_inet6_ext = (struct inet6_ext_sock *) sock->sk;
+	return -1;
 	return sk_inet6_ext->ipv6_sock->ops->release( sock ); // Broken, haven't figured this one out yet.
 }
 
